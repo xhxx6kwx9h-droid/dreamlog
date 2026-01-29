@@ -1,0 +1,9 @@
+{
+  "extends": "@vitejs/plugin-react",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}
