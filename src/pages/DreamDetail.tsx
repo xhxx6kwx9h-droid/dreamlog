@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Dream } from "@/types/dream";
 import { dreamApi } from "@/api/dream";
-import { ArrowLeft, Edit2, Trash2 } from "lucide-react";
+import { ArrowLeft, Edit2, Trash2, Share2 } from "lucide-react";
 import DreamModal from "@/components/DreamModal";
 
 interface DreamDetailProps {
@@ -18,6 +18,10 @@ const DreamDetail: React.FC<DreamDetailProps> = ({ addToast, isDarkMode, user })
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [users, setUsers] = useState<{ id: string; username: string }[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [shareLoading, setShareLoading] = useState(false);
 
   const loadDream = useCallback(async () => {
     if (!id) return;
@@ -63,6 +67,39 @@ const DreamDetail: React.FC<DreamDetailProps> = ({ addToast, isDarkMode, user })
       navigate("/");
     } catch (err) {
       addToast("Rüya silinemedi", "error");
+    }
+  };
+
+  const handleOpenShareModal = async () => {
+    setShareLoading(true);
+    try {
+      const allUsers = await dreamApi.getAllUsers();
+      setUsers(allUsers.filter(u => u.id !== user?.id)); // Kendisi hariç
+      setShowShareModal(true);
+    } catch (err) {
+      addToast("Kullanıcılar yüklenemedi", "error");
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  const handleShare = async () => {
+    if (!selectedUserId || !dream) return;
+    
+    setShareLoading(true);
+    try {
+      await dreamApi.shareDream(dream.id, selectedUserId);
+      addToast("Rüya paylaşıldı!", "success");
+      setShowShareModal(false);
+      setSelectedUserId("");
+    } catch (err: any) {
+      if (err.message.includes("unique")) {
+        addToast("Bu rüya bu kullanıcıya zaten paylaşılmış", "error");
+      } else {
+        addToast("Paylaşma başarısız", "error");
+      }
+    } finally {
+      setShareLoading(false);
     }
   };
 
@@ -117,6 +154,13 @@ const DreamDetail: React.FC<DreamDetailProps> = ({ addToast, isDarkMode, user })
                 >
                   <Edit2 className="w-5 h-5" />
                   Düzenle
+                </button>
+                <button
+                  onClick={handleOpenShareModal}
+                  className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors ${isDarkMode ? 'bg-emerald-700 hover:bg-emerald-600 text-white' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}`}
+                >
+                  <Share2 className="w-5 h-5" />
+                  Paylaş
                 </button>
                 <button
                   onClick={askDeleteConfirm}
@@ -249,6 +293,57 @@ const DreamDetail: React.FC<DreamDetailProps> = ({ addToast, isDarkMode, user })
                 Sil
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share Modal */}
+      {showShareModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className={`rounded-xl p-6 max-w-sm w-full mx-4 shadow-xl ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
+            <h3 className={`text-lg font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              🎁 Rüyayı Paylaş
+            </h3>
+
+            {users.length === 0 ? (
+              <p className={`mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                Paylaşılacak kullanıcı yok
+              </p>
+            ) : (
+              <>
+                <select
+                  value={selectedUserId}
+                  onChange={(e) => setSelectedUserId(e.target.value)}
+                  className={`w-full px-3 py-2 rounded-lg border mb-4 focus:outline-none focus:ring-2 focus:ring-emerald-500 ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}
+                >
+                  <option value="">Kullanıcı seç...</option>
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      👤 {u.username}
+                    </option>
+                  ))}
+                </select>
+
+                <div className="flex gap-3 justify-end">
+                  <button
+                    onClick={() => {
+                      setShowShareModal(false);
+                      setSelectedUserId("");
+                    }}
+                    className={`px-4 py-2 rounded-lg transition-colors ${isDarkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}
+                  >
+                    İptal
+                  </button>
+                  <button
+                    onClick={handleShare}
+                    disabled={!selectedUserId || shareLoading}
+                    className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                  >
+                    {shareLoading ? "Paylaşılıyor..." : "Paylaş"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
