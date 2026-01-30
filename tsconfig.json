@@ -30,6 +30,6 @@
     "jsx": "react-jsx",
     "jsxImportSource": "react"
   },
-  "include": ["src"],
+  "include": ["vite-env.d.ts", "src"],
   "exclude": ["node_modules", "src-tauri", "dist"]
 }
