@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Lock, Settings } from "lucide-react";
+import { Lock, Settings, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface HeaderProps {
@@ -7,9 +7,11 @@ interface HeaderProps {
   addToast: (message: string, type?: "success" | "error" | "info") => void;
   isDarkMode: boolean;
   toggleDarkMode: () => void;
+  user?: any;
+  onLogout?: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onLock, addToast, isDarkMode, toggleDarkMode }) => {
+const Header: React.FC<HeaderProps> = ({ onLock, addToast, isDarkMode, toggleDarkMode, user, onLogout }) => {
   const navigate = useNavigate();
   const [showPinWarning, setShowPinWarning] = useState(false);
 
@@ -26,6 +28,15 @@ const Header: React.FC<HeaderProps> = ({ onLock, addToast, isDarkMode, toggleDar
     }
   };
 
+  const handleLogout = () => {
+    if (onLogout) {
+      onLogout();
+      addToast("Çıkış yapıldı", "success");
+    }
+  };
+
+  const username = user?.user_metadata?.username || user?.email?.split("@")[0] || "Kullanıcı";
+
   return (
     <>
       <header className={`sticky top-0 z-50 border-b transition-colors duration-300 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
@@ -33,6 +44,11 @@ const Header: React.FC<HeaderProps> = ({ onLock, addToast, isDarkMode, toggleDar
           <div className="flex justify-between items-center">
             <div>
               <h1 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Your Dream's🌙</h1>
+              {user && (
+                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Hoşgeldin, <span className="font-semibold">{username}</span>
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-2">
               {/* Dark Mode Toggle */}
@@ -43,6 +59,15 @@ const Header: React.FC<HeaderProps> = ({ onLock, addToast, isDarkMode, toggleDar
               >
                 {isDarkMode ? "☀️" : "🌙"}
               </button>
+              {onLogout && (
+                <button
+                  onClick={handleLogout}
+                  className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'text-gray-400 hover:bg-gray-700 hover:text-red-400' : 'text-gray-600 hover:bg-gray-100 hover:text-red-600'}`}
+                  title="Çıkış Yap"
+                >
+                  <LogOut className="w-5 h-5" />
+                </button>
+              )}
               <button
                 onClick={handleLockClick}
                 className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}

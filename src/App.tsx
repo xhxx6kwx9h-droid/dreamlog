@@ -4,9 +4,11 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "@/pages/Home";
 import DreamDetail from "@/pages/DreamDetail";
 import Settings from "@/pages/Settings";
+import Auth from "@/pages/Auth";
 import Header from "@/components/Header";
 import PinLock from "@/components/PinLock";
 import Toast from "@/components/Toast";
+import { authService } from "@/api/supabase";
 import { Dream } from "@/types/dream";
 
 export interface Toast {
@@ -16,6 +18,8 @@ export interface Toast {
 }
 
 const App: React.FC = () => {
+  const [user, setUser] = useState<any>(null);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [isLocked, setIsLocked] = useState<boolean>(() => {
     // Uygulama başladığında PIN aktif mi diye kontrol et
     const isPinEnabled = localStorage.getItem("pinEnabled") === "true";
@@ -26,6 +30,31 @@ const App: React.FC = () => {
     const saved = localStorage.getItem("darkMode");
     return saved === "true";
   });
+
+  // Auth durumunu kontrol et
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const currentUser = await authService.getCurrentUser();
+        setUser(currentUser);
+      } catch (err) {
+        console.error("Auth check error:", err);
+      } finally {
+        setIsLoadingAuth(false);
+      }
+    };
+
+    checkAuth();
+
+    // Auth state değişikliklerini dinle
+    const { unsubscribe } = authService.onAuthStateChange((authUser) => {
+      setUser(authUser);
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
 
   // Dark mode değiştiğinde HTML'e class ekle/kaldır
   useEffect(() => {
@@ -57,6 +86,18 @@ const App: React.FC = () => {
     }, 3000);
   }, []);
 
+  if (isLoadingAuth) {
+    return (
+      <div className={`flex items-center justify-center w-screen h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-dream-900 to-dream-700'}`}>
+        <p className="text-white text-lg">Yükleniyor...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Auth onAuthSuccess={() => setUser(user)} isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />;
+  }
+
   if (isLocked) {
     return <PinLock onUnlock={handleUnlock} isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />;
   }
@@ -64,16 +105,19 @@ const App: React.FC = () => {
   return (
     <Router>
       <div className={`flex flex-col h-screen transition-colors duration-300 ${isDarkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-slate-50 to-slate-100'}`}>
-        <Header onLock={handleLock} addToast={addToast} isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
+        <Header onLock={handleLock} addToast={addToast} isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} user={user} onLogout={() => {
+          authService.signOut();
+          setUser(null);
+        }} />
         <div className="flex-1 overflow-auto">
           <Routes>
             <Route
               path="/"
-              element={<Home addToast={addToast} isDarkMode={isDarkMode} />}
+              element={<Home addToast={addToast} isDarkMode={isDarkMode} user={user} />}
             />
             <Route
               path="/dream/:id"
-              element={<DreamDetail addToast={addToast} isDarkMode={isDarkMode} />}
+              element={<DreamDetail addToast={addToast} isDarkMode={isDarkMode} user={user} />}
             />
             <Route
               path="/settings"
