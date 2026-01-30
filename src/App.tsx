@@ -95,7 +95,10 @@ const App: React.FC = () => {
   }
 
   if (!user) {
-    return <Auth onAuthSuccess={() => setUser(user)} isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />;
+    return <Auth onAuthSuccess={() => {
+      // Auth successful olunca, auth state'i refresh et
+      authService.getCurrentUser().then(setUser);
+    }} isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />;
   }
 
   if (isLocked) {

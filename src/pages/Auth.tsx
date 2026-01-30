@@ -36,7 +36,18 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, isDarkMode = false, toggleDa
         onAuthSuccess();
       }
     } catch (err: any) {
-      setError(err.message || "Bir hata oluştu");
+      const errorMessage = err.message || "Bir hata oluştu";
+      
+      // Email rate limit hatasını kullanıcı dostu hale getir
+      if (errorMessage.includes("email_rate_limit") || errorMessage.includes("rate limit")) {
+        setError("Çok fazla deneme yapıldı. Lütfen 5-10 dakika sonra tekrar deneyin.");
+      } else if (errorMessage.includes("User already registered")) {
+        setError("Bu email ile zaten bir hesap var. Giriş yapmayı deneyin.");
+      } else if (errorMessage.includes("Invalid login credentials")) {
+        setError("Email veya şifre hatalı.");
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -136,6 +147,37 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, isDarkMode = false, toggleDa
             {isSignUp ? "Zaten hesabım var" : "Hesap oluştur"}
           </button>
         </form>
+
+        {/* Demo Hesapları */}
+        {!isSignUp && (
+          <div className={`mt-6 p-4 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-slate-100'}`}>
+            <p className={`text-xs mb-3 font-semibold ${isDarkMode ? 'text-gray-300' : 'text-slate-700'}`}>
+              📝 TEST HESAPLARI:
+            </p>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("mina@test.com");
+                  setPassword("test123");
+                }}
+                className={`w-full text-left px-3 py-2 rounded text-sm transition-colors ${isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-gray-100' : 'bg-white hover:bg-slate-50 text-slate-700'}`}
+              >
+                👩 Mina - mina@test.com / test123
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("anil@test.com");
+                  setPassword("test123");
+                }}
+                className={`w-full text-left px-3 py-2 rounded text-sm transition-colors ${isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-gray-100' : 'bg-white hover:bg-slate-50 text-slate-700'}`}
+              >
+                👨 Anıl - anil@test.com / test123
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
