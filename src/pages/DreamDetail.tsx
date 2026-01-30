@@ -109,20 +109,24 @@ const DreamDetail: React.FC<DreamDetailProps> = ({ addToast, isDarkMode, user })
             Geri
           </button>
           <div className="flex gap-3">
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="btn-primary flex items-center gap-2"
-            >
-              <Edit2 className="w-5 h-5" />
-              Düzenle
-            </button>
-            <button
-              onClick={askDeleteConfirm}
-              className="btn-danger flex items-center gap-2"
-            >
-              <Trash2 className="w-5 h-5" />
-              Sil
-            </button>
+            {user?.id === dream?.user_id && (
+              <>
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="btn-primary flex items-center gap-2"
+                >
+                  <Edit2 className="w-5 h-5" />
+                  Düzenle
+                </button>
+                <button
+                  onClick={askDeleteConfirm}
+                  className="btn-danger flex items-center gap-2"
+                >
+                  <Trash2 className="w-5 h-5" />
+                  Sil
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

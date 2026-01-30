@@ -2,6 +2,7 @@ export type Mood = "happy" | "sad" | "scary" | "romantic" | "weird" | "neutral";
 
 export interface Dream {
   id: string;
+  user_id: string;
   title: string;
   occurredAt: string;
   content: string;
