@@ -147,12 +147,6 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, isDarkMode = false, toggleDa
             {isSignUp ? "Zaten hesabım var" : "Hesap oluştur"}
           </button>
         </form>
-
-        {/* Demo Hesapları */}
-        {!isSignUp && (
-          <div className={`mt-6 p-4 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-slate-100'}`}>
-            <p className={`text-xs mb-3 font-semibold ${isDarkMode ? 'text-gray-300' : 'text-slate-700'}`}>
-        )}
       </div>
     </div>
   );
