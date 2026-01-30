@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Lock, Settings, LogOut } from "lucide-react";
+import { Lock, Settings, LogOut, Bell } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface HeaderProps {
@@ -9,9 +9,11 @@ interface HeaderProps {
   toggleDarkMode: () => void;
   user?: any;
   onLogout?: () => void;
+  onNotificationsClick?: () => void;
+  unreadNotificationCount?: number;
 }
 
-const Header: React.FC<HeaderProps> = ({ onLock, addToast, isDarkMode, toggleDarkMode, user, onLogout }) => {
+const Header: React.FC<HeaderProps> = ({ onLock, addToast, isDarkMode, toggleDarkMode, user, onLogout, onNotificationsClick, unreadNotificationCount = 0 }) => {
   const navigate = useNavigate();
   const [showPinWarning, setShowPinWarning] = useState(false);
 
@@ -59,6 +61,21 @@ const Header: React.FC<HeaderProps> = ({ onLock, addToast, isDarkMode, toggleDar
               >
                 {isDarkMode ? "☀️" : "🌙"}
               </button>
+              {/* Notification Button */}
+              {onNotificationsClick && (
+                <button
+                  onClick={onNotificationsClick}
+                  className={`p-2 rounded-lg transition-colors relative ${isDarkMode ? 'text-gray-400 hover:bg-gray-700 hover:text-emerald-400' : 'text-gray-600 hover:bg-gray-100 hover:text-emerald-600'}`}
+                  title="Bildirimler"
+                >
+                  <Bell className="w-5 h-5" />
+                  {unreadNotificationCount > 0 && (
+                    <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                      {unreadNotificationCount > 9 ? "9+" : unreadNotificationCount}
+                    </span>
+                  )}
+                </button>
+              )}
               {onLogout && (
                 <button
                   onClick={handleLogout}

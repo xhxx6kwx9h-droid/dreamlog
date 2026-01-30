@@ -2,7 +2,8 @@ export type Mood = "happy" | "sad" | "scary" | "romantic" | "weird" | "neutral";
 
 export interface Dream {
   id: string;
-  user_id: string;
+  user_id?: string;
+  sharedBy?: string; // For shared dreams - who shared it
   title: string;
   occurredAt: string;
   content: string;

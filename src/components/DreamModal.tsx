@@ -9,6 +9,7 @@ interface DreamModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (dream: Dream) => Promise<void>;
+  onSuccess?: () => void;
   isDarkMode?: boolean;
 }
 
@@ -17,6 +18,7 @@ const DreamModal: React.FC<DreamModalProps> = ({
   isOpen,
   onClose,
   onSave,
+  onSuccess,
   isDarkMode,
 }) => {
   const [formData, setFormData] = useState<Dream>({
@@ -86,6 +88,7 @@ const DreamModal: React.FC<DreamModalProps> = ({
         updatedAt: new Date().toISOString(),
       };
       await onSave(updatedDream);
+      onSuccess?.();
       onClose();
     } finally {
       setLoading(false);

@@ -11,15 +11,17 @@ interface HomeProps {
   addToast: (message: string, type?: "success" | "error" | "info") => void;
   isDarkMode?: boolean;
   user?: any;
+  onUnreadCountChange?: (count: number) => void;
 }
 
 type TabType = "my-dreams" | "shared-dreams";
 
-const Home: React.FC<HomeProps> = ({ addToast, isDarkMode = false, user }) => {
+const Home: React.FC<HomeProps> = ({ addToast, isDarkMode = false, user, onUnreadCountChange }) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>("my-dreams");
   const [dreams, setDreams] = useState<Dream[]>([]);
   const [sharedDreams, setSharedDreams] = useState<Dream[]>([]);
+  const [ownSharedDreamIds, setOwnSharedDreamIds] = useState<string[]>([]);
   const [filteredDreams, setFilteredDreams] = useState<Dream[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -64,6 +66,31 @@ const Home: React.FC<HomeProps> = ({ addToast, isDarkMode = false, user }) => {
     }
   }, [user?.id]);
 
+  // Kullanıcının paylaştığı rüyaları yükle (badge için)
+  const loadOwnSharedDreams = useCallback(async () => {
+    if (!user?.id) return;
+    
+    try {
+      const ids = await dreamApi.getOwnSharedDreamIds(user.id);
+      setOwnSharedDreamIds(ids);
+    } catch (err) {
+      console.error("Error loading own shared dream ids:", err);
+    }
+  }, [user?.id]);
+
+  // Okunmamış bildirimleri say
+  const updateUnreadCount = useCallback(async () => {
+    if (!user?.id || !onUnreadCountChange) return;
+    
+    try {
+      const notifications = await dreamApi.getNotifications(user.id);
+      const unreadCount = notifications.filter(n => !n.isRead).length;
+      onUnreadCountChange(unreadCount);
+    } catch (err) {
+      console.error("Error updating unread count:", err);
+    }
+  }, [user?.id, onUnreadCountChange]);
+
   // Real-time subscription
   useEffect(() => {
     if (!user?.id) return;
@@ -98,6 +125,20 @@ const Home: React.FC<HomeProps> = ({ addToast, isDarkMode = false, user }) => {
         (payload) => {
           console.log("Shared dream update:", payload);
           loadSharedDreams();
+          updateUnreadCount();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "dream_shares",
+          filter: `shared_by=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log("Own shared dream update:", payload);
+          loadOwnSharedDreams();
         }
       )
       .subscribe();
@@ -107,7 +148,7 @@ const Home: React.FC<HomeProps> = ({ addToast, isDarkMode = false, user }) => {
         subscriptionRef.current.unsubscribe();
       }
     };
-  }, [user?.id, searchQuery, selectedMood, loadDreams, loadSharedDreams]);
+  }, [user?.id, searchQuery, selectedMood, loadDreams, loadSharedDreams, loadOwnSharedDreams, updateUnreadCount]);
 
   // Başlangıçta yükle
   useEffect(() => {
@@ -115,8 +156,10 @@ const Home: React.FC<HomeProps> = ({ addToast, isDarkMode = false, user }) => {
       isInitialMount.current = false;
       loadDreams(searchQuery, selectedMood);
       loadSharedDreams();
+      loadOwnSharedDreams();
+      updateUnreadCount();
     }
-  }, [user?.id, loadDreams, loadSharedDreams, searchQuery, selectedMood]);
+  }, [user?.id, loadDreams, loadSharedDreams, loadOwnSharedDreams, updateUnreadCount, searchQuery, selectedMood]);
 
   const handleSaveDream = async (dream: Dream) => {
     try {
@@ -178,7 +221,6 @@ const Home: React.FC<HomeProps> = ({ addToast, isDarkMode = false, user }) => {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className={`text-4xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Your Dream's🌙</h1>
-          <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Rüyaları paylaş ve keşfet</p>
         </div>
         <button
           onClick={() => {
@@ -299,9 +341,21 @@ const Home: React.FC<HomeProps> = ({ addToast, isDarkMode = false, user }) => {
             >
               <div className="flex justify-between items-start mb-3">
                 <div className="flex-1">
-                  <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    {dream.title}
-                  </h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      {dream.title}
+                    </h3>
+                    {activeTab === "shared-dreams" && dream.sharedBy && (
+                      <span className={`text-xs px-2 py-1 rounded ${isDarkMode ? 'bg-emerald-900 text-emerald-200' : 'bg-emerald-100 text-emerald-700'}`}>
+                        {dream.sharedBy} paylaştı
+                      </span>
+                    )}
+                    {activeTab === "my-dreams" && ownSharedDreamIds.includes(dream.id) && (
+                      <span className={`text-xs px-2 py-1 rounded ${isDarkMode ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-700'}`}>
+                        ✓ Paylaşıldı
+                      </span>
+                    )}
+                  </div>
                   <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                     {new Date(dream.occurredAt).toLocaleDateString("tr-TR", {
                       year: "numeric",
@@ -368,6 +422,10 @@ const Home: React.FC<HomeProps> = ({ addToast, isDarkMode = false, user }) => {
           setSelectedDream(null);
         }}
         onSave={handleSaveDream}
+        onSuccess={() => {
+          loadDreams(searchQuery, selectedMood);
+          loadSharedDreams();
+        }}
         isDarkMode={isDarkMode}
       />
 
