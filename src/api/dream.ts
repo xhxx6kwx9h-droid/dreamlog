@@ -180,4 +180,107 @@ export const dreamApi = {
   async getAppPaths(): Promise<{ dbPath: string }> {
     return { dbPath: "cloud" };
   },
+
+  // Paylaşılan rüyaları getir
+  async getSharedDreams(userId?: string): Promise<Dream[]> {
+    try {
+      if (!userId) {
+        const { data } = await supabase.auth.getUser();
+        userId = data.user?.id;
+        if (!userId) return [];
+      }
+
+      // Share'ı dinle ve rüyayı çek
+      const { data: shares, error: sharesError } = await supabase
+        .from("dream_shares")
+        .select("dream_id")
+        .eq("shared_with", userId);
+
+      if (sharesError) throw sharesError;
+      if (!shares || shares.length === 0) return [];
+
+      const dreamIds = shares.map(s => s.dream_id);
+
+      const { data: dreams, error: dreamsError } = await supabase
+        .from("dreams")
+        .select("*")
+        .in("id", dreamIds)
+        .order("occurred_at", { ascending: false });
+
+      if (dreamsError) throw dreamsError;
+
+      return (dreams || []).map(d => ({
+        id: d.id,
+        user_id: d.user_id,
+        title: d.title,
+        content: d.content,
+        occurredAt: d.occurred_at,
+        mood: d.mood,
+        intensity: d.intensity,
+        lucid: d.lucid,
+        tags: d.tags || [],
+        createdAt: d.created_at,
+        updatedAt: d.updated_at,
+      }));
+    } catch (err) {
+      console.error("getSharedDreams error:", err);
+      return [];
+    }
+  },
+
+  // Rüyayı başkasıyla paylaş
+  async shareDream(dreamId: string, shareWithUserId: string): Promise<void> {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user?.id) throw new Error("User not authenticated");
+
+      const { error } = await supabase
+        .from("dream_shares")
+        .insert({
+          dream_id: dreamId,
+          shared_by: userData.user.id,
+          shared_with: shareWithUserId,
+        });
+
+      if (error) throw error;
+    } catch (err) {
+      console.error("shareDream error:", err);
+      throw err;
+    }
+  },
+
+  // Paylaşımı kaldır
+  async unshare(dreamId: string, unshareWithUserId: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from("dream_shares")
+        .delete()
+        .eq("dream_id", dreamId)
+        .eq("shared_with", unshareWithUserId);
+
+      if (error) throw error;
+    } catch (err) {
+      console.error("unshare error:", err);
+      throw err;
+    }
+  },
+
+  // Tüm kullanıcıları getir (share için)
+  async getAllUsers(): Promise<{ id: string; username: string }[]> {
+    try {
+      const { data, error } = await supabase.auth.admin.listUsers();
+      
+      if (error) throw error;
+
+      return (data?.users || [])
+        .filter(u => u.user_metadata?.username)
+        .map(u => ({
+          id: u.id,
+          username: u.user_metadata.username,
+        }));
+    } catch (err) {
+      console.error("getAllUsers error:", err);
+      return [];
+    }
+  },
 };

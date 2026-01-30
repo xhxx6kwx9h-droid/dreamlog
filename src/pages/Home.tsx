@@ -19,6 +19,7 @@ const Home: React.FC<HomeProps> = ({ addToast, isDarkMode = false, user }) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>("my-dreams");
   const [dreams, setDreams] = useState<Dream[]>([]);
+  const [sharedDreams, setSharedDreams] = useState<Dream[]>([]);
   const [filteredDreams, setFilteredDreams] = useState<Dream[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -51,6 +52,18 @@ const Home: React.FC<HomeProps> = ({ addToast, isDarkMode = false, user }) => {
     }
   }, [addToast, user?.id]);
 
+  // Paylaşılan rüyaları yükle
+  const loadSharedDreams = useCallback(async () => {
+    if (!user?.id) return;
+    
+    try {
+      const data = await dreamApi.getSharedDreams(user.id);
+      setSharedDreams(data);
+    } catch (err) {
+      console.error("Error loading shared dreams:", err);
+    }
+  }, [user?.id]);
+
   // Real-time subscription
   useEffect(() => {
     if (!user?.id) return;
@@ -74,6 +87,19 @@ const Home: React.FC<HomeProps> = ({ addToast, isDarkMode = false, user }) => {
           loadDreams(searchQuery, selectedMood);
         }
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "dream_shares",
+          filter: `shared_with=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log("Shared dream update:", payload);
+          loadSharedDreams();
+        }
+      )
       .subscribe();
 
     return () => {
@@ -81,15 +107,16 @@ const Home: React.FC<HomeProps> = ({ addToast, isDarkMode = false, user }) => {
         subscriptionRef.current.unsubscribe();
       }
     };
-  }, [user?.id, searchQuery, selectedMood, loadDreams]);
+  }, [user?.id, searchQuery, selectedMood, loadDreams, loadSharedDreams]);
 
   // Başlangıçta yükle
   useEffect(() => {
     if (isInitialMount.current && user?.id) {
       isInitialMount.current = false;
       loadDreams(searchQuery, selectedMood);
+      loadSharedDreams();
     }
-  }, [user?.id, loadDreams, searchQuery, selectedMood]);
+  }, [user?.id, loadDreams, loadSharedDreams, searchQuery, selectedMood]);
 
   const handleSaveDream = async (dream: Dream) => {
     try {
@@ -264,7 +291,7 @@ const Home: React.FC<HomeProps> = ({ addToast, isDarkMode = false, user }) => {
             )}
           </div>
         ) : (
-          filteredDreams.map((dream) => (
+          (activeTab === "my-dreams" ? filteredDreams : sharedDreams).map((dream) => (
             <div
               key={dream.id}
               className={`p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer ${isDarkMode ? 'bg-gray-800 hover:bg-gray-750' : 'bg-white'}`}
