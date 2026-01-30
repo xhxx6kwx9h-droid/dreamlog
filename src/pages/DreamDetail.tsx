@@ -8,9 +8,10 @@ import DreamModal from "@/components/DreamModal";
 interface DreamDetailProps {
   addToast: (message: string, type?: "success" | "error" | "info") => void;
   isDarkMode?: boolean;
+  user?: any;
 }
 
-const DreamDetail: React.FC<DreamDetailProps> = ({ addToast, isDarkMode }) => {
+const DreamDetail: React.FC<DreamDetailProps> = ({ addToast, isDarkMode, user }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [dream, setDream] = useState<Dream | null>(null);

@@ -121,7 +121,7 @@ const App: React.FC = () => {
             />
             <Route
               path="/settings"
-              element={<Settings addToast={addToast} onLock={handleLock} isDarkMode={isDarkMode} />}
+              element={<Settings addToast={addToast} onLock={handleLock} isDarkMode={isDarkMode} user={user} />}
             />
           </Routes>
         </div>

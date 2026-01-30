@@ -9,9 +9,10 @@ interface SettingsProps {
   addToast: (message: string, type?: "success" | "error" | "info") => void;
   onLock: () => void;
   isDarkMode?: boolean;
+  user?: any;
 }
 
-const Settings: React.FC<SettingsProps> = ({ addToast, onLock, isDarkMode = false }) => {
+const Settings: React.FC<SettingsProps> = ({ addToast, onLock, isDarkMode = false, user }) => {
   const navigate = useNavigate();
   const [pinEnabled, setPinEnabled] = useState(() =>
     localStorage.getItem("pinEnabled") === "true"
